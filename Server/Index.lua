@@ -244,10 +244,11 @@ PatternList = {
 -- Deathmatch Settings
 DeathmatchSettings = {
 	warmup_time = 30,
-	preparing_time = 13,
+	preparing_time = 2,
 	match_time = 300,
 	post_time = 15,
 	multikill_time = 6,
+	kill_z = -300,
 	multikill_time_multiplier = 1,
 	spawn_locations = {
 	},
@@ -450,10 +451,30 @@ Character.Subscribe("TakeDamage", function(character, damage, bone, type, from, 
 end)
 
 -- When a character dies, check if I was the last one to do damage on him and displays on the screen as a kill
+ResetTimer = nil
 Character.Subscribe("Death", function(character, last_damage_taken, last_bone_damaged, damage_type_reason, hit_from_direction, instigator)
 	local dead_player = character:GetPlayer()
+	NumberOfAlivePlayers = 0
+	for k,v in pairs(Character.GetAll()) do
+		if v:GetHealth() > 0 then
+			NumberOfAlivePlayers = NumberOfAlivePlayers + 1
+		end
+	end
+
+	if NumberOfAlivePlayers <= 1 then
+		WonRound = true
+		if instigator then
+			Events.CallRemote("SpawnSound", instigator, Vector(), "unreal-tournament-announcer::A_Winner", true, 1, 1)
+		else
+			if dead_player then
+				Events.CallRemote("SpawnSound", dead_player, Vector(), "unreal-tournament-announcer::A_Winner", true, 1, 1)
+			end
+		end
+	end
+
 
 	if (instigator) then
+
 		-- Cannot be suicide
 		if (instigator ~= dead_player) then
 			local killer_character = instigator:GetControlledCharacter()
@@ -482,29 +503,49 @@ Character.Subscribe("Death", function(character, last_damage_taken, last_bone_da
 
 			-- Spawns a Power Up in the place
 			SpawnPowerUp(character:GetLocation())
+		else
+			AddScore(dead_player, -200, "enemy_kill", "ENEMY KILL", false, true)
 		end
 	end
 
 	if (dead_player) then
+		AddScore(dead_player, -100, "enemy_kill", "ENEMY KILL", false, true)
+		Events.CallRemote("SpawnSound", dead_player, Vector(), "unreal-tournament-announcer::A_LostMatch", true, 1, 1)
 		-- Adds a death to count
 		AddDeath(dead_player, instigator)
 
 		-- Immediately destroys the wepaon
 		local weapon = dead_player:GetValue("Weapon")
 
+		Timer.SetTimeout(function(_character, _player)
+			if _character and _character:IsValid() then
+				_character:Destroy()
+				_player:SetCameraLocation(DeathmatchSettings.spawn_locations[math.random(#DeathmatchSettings.spawn_locations)] + Vector(0,0,2000), 1, 1)
+			end
+
+		end, 3000, character, dead_player)
+
 		if (weapon and weapon:IsValid()) then
 			weapon:Destroy()
 		end
 
-		-- Respawns after 5 seconds
-		Timer.Bind(
-			Timer.SetTimeout(function(_player)
-				if (Deathmatch.match_state ~= MATCH_STATES.POST_TIME) then
-					RespawnPlayer(_player)
-				end
-			end, 5000, dead_player),
-			dead_player
-		)
+	end
+	if WonRound then
+		Package.Log("Won Round")
+		WonRound = nil
+		for k,v in pairs(Character.GetAll()) do
+			if v:GetHealth() > 0 then
+				local player = v:GetPlayer()
+				AddScore(player , 1000, "enemy_kill", "ENEMY KILL", false, true)
+			end
+		end
+
+		if ResetTimer == nil then
+			ResetTimer = Timer.SetTimeout(function()
+				UpdateMatchState(MATCH_STATES.PREPARING)
+				ResetTimer = nil
+			end, 3500)
+		end
 	end
 end)
 
@@ -515,11 +556,26 @@ Package.Subscribe("Load", function()
 	end, 100)
 end)
 
+
+function GenerateThunderMatch()
+	Events.Call("SetMapSize", 62*#Player.GetAll())
+	Events.Call("ClearMap")
+	Events.Call("GenerateMap")
+	Timer.SetTimeout(function()
+		for _,v in pairs(Player.GetAll()) do
+			RespawnPlayer(v)
+		end
+	end, 200)
+end
+
+
 -- Helper for updating the match state
 function UpdateMatchState(new_state)
 	Deathmatch.match_state = new_state
 
 	if (new_state == MATCH_STATES.WARM_UP) then
+		Events.Call("ClearMap")
+		Events.Call("GenerateMap")
 		Deathmatch.remaining_time = DeathmatchSettings.warmup_time
 
 		Package.Log("[Deathmatch] Warm-up!")
@@ -529,13 +585,9 @@ function UpdateMatchState(new_state)
 
 	elseif (new_state == MATCH_STATES.PREPARING) then
 		Deathmatch.remaining_time = DeathmatchSettings.preparing_time
-
-		Events.BroadcastRemote("SpawnSound", Vector(), "unreal-tournament-announcer::A_Prepare", true, 1, 1)
-
+		GenerateThunderMatch()
 		Package.Log("[Deathmatch] Preparing!")
 		Server.BroadcastChatMessage("<grey>Preparing!</>")
-
-		CleanUp()
 
 		-- Freeze all characters
 		for k, character in pairs(Character.GetAll()) do
@@ -546,12 +598,8 @@ function UpdateMatchState(new_state)
 	elseif (new_state == MATCH_STATES.IN_PROGRESS) then
 		Deathmatch.remaining_time = DeathmatchSettings.match_time
 		Deathmatch.first_blood = false
-
-		Events.BroadcastRemote("SpawnSound", Vector(), "unreal-tournament-announcer::A_Proceed", true, 1, 1)
-
 		Package.Log("[Deathmatch] Round started!")
 		Server.BroadcastChatMessage("<grey>Round Started!</>")
-
 		-- Unfreeze all characters
 		for k, character in pairs(Character.GetAll()) do
 			character:SetMovementEnabled(true)
@@ -560,7 +608,6 @@ function UpdateMatchState(new_state)
 
 	elseif (new_state == MATCH_STATES.POST_TIME) then
 		Deathmatch.remaining_time = DeathmatchSettings.post_time
-
 		-- Freeze all characters
 		for k, character in pairs(Character.GetAll()) do
 			character:SetMovementEnabled(false)
@@ -586,7 +633,6 @@ function UpdateMatchState(new_state)
 			elseif (rank == #player_rank) then
 				Events.CallRemote("SpawnSound", player, Vector(), "unreal-tournament-announcer::A_LastPlace", true, 1, 1)
 			end
-
 			Server.BroadcastChatMessage(tostring(rank) .. "# <cyan>" .. player:GetName() .. "</>: " .. tostring(player:GetValue("Score") or 0))
 		end
 
@@ -642,23 +688,29 @@ function CleanUp()
 		player:SetValue("KillStreak", 0, true)
 		player:SetValue("Weapon", nil)
 		player:SetValue("AccumulatedKills", 0)
-
 		RespawnPlayer(player)
 	end
 end
 
 -- Helper for spawning/respawning a character for a Player
+--
+NumberOfAlivePlayers = 0
 function RespawnPlayer(player)
 	if (not player or not player:IsValid()) then return end
 
 	local character = player:GetControlledCharacter()
+	if character then
+		character:Destroy()
+		character = nil
+	end
 
-	local spawn_location = #DeathmatchSettings.spawn_locations > 0 and (DeathmatchSettings.spawn_locations[math.random(#DeathmatchSettings.spawn_locations)] + Vector(0, 0, math.random(5000, 6000))) or Vector(math.random(-3000, 3000), math.random(-3000, 3000), math.random(5000, 6000))
-	-- local spawn_location = Vector(
-	-- 	math.random(-5000, 5000),
-	-- 	math.random(-5000, 5000),
-	-- 	5000
-	-- )
+	local weapon = player:GetValue("Weapon")
+
+	if (weapon and weapon:IsValid()) then
+		weapon:Destroy()
+	end
+
+	local spawn_location = DeathmatchSettings.spawn_locations[math.random(#DeathmatchSettings.spawn_locations)] + Vector(0,0,-100)
 
 	-- If player already has a character
 	if (character) then
@@ -676,7 +728,21 @@ function RespawnPlayer(player)
 		-- character = Character(spawn_location.location, spawn_location.rotation, "nanos-world::SK_Mannequin")
 		-- Spawns a new character
 		character = Character(spawn_location, Rotator(), "nanos-world::SK_Mannequin")
-		player:Possess(character)
+		character:SetCameraMode(CameraMode.FPSOnly)
+		character:SetGravityScale(0.5)
+		character:SetJumpZVelocity(500)
+		character:SetFallDamageTaken(0)
+		character:SetAccelerationSettings(2048, 512, 1024, 128, 256, 256, 1024)
+		character:SetBrakingSettings(96, 96, 96, 3000, 10, 0)
+		kill_z = Timer.SetInterval(function(_character)
+			if (character:GetLocation().Z < DeathmatchSettings.kill_z) then
+				_character:SetHealth(0)
+			end
+		end, 1000, character)
+
+		-- Binds the Timer to the Character
+		Timer.Bind(kill_z, character)
+		player:Possess(character, 1, 1)
 	end
 
 	if (Deathmatch.match_state == MATCH_STATES.PREPARING) then
@@ -697,11 +763,11 @@ function RespawnPlayer(player)
 	character:SetMaterialColorParameter("Tint", Color.BLUE)
 
 	Timer.Bind(
-		Timer.SetTimeout(function(_character)
-			_character:SetMaterialColorParameter("Tint", Color.WHITE)
-			_character:SetInvulnerable(false)
-		end, 3000, character),
-		character
+	Timer.SetTimeout(function(_character)
+		_character:SetMaterialColorParameter("Tint", Color.RandomPalette())
+		_character:SetInvulnerable(false)
+	end, 3000, character),
+	character
 	)
 
 	return character
@@ -716,7 +782,7 @@ function SpawnWeapon(player)
 		if (DeathmatchSettings.weapons_to_use == "quaternius") then
 			local weapon_name = QuaterniusWeapons[math.random(#QuaterniusWeapons)]
 			weapon = Package.Call("quaternius-tools", weapon_name, {}, false)
-		-- Default Weapons
+			-- Default Weapons
 		elseif (DeathmatchSettings.weapons_to_use == "default") then
 			local weapon_func = DefaultWeapons[math.random(#DefaultWeapons)]
 			weapon = weapon_func()
@@ -768,6 +834,7 @@ function SpawnPowerUp(location)
 		if (NanosUtils.IsA(object, Character) and object:GetHealth() > 0) then
 			-- Gives Health
 			object:SetHealth(math.min(object:GetHealth() + 50, 120))
+			object:SetSpeedMultiplier(object:GetSpeedMultiplier() + 0.1)
 
 			-- Gives Ammo
 			local weapon = object:GetPicked()

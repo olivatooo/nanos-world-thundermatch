@@ -1,4 +1,3 @@
-
 -- Spawns HUD
 MainHUD = WebUI("Deathmatch HUD", "file:///UI/index.html")
 ScoreboardToggled = false
@@ -6,7 +5,7 @@ ScoreboardToggled = false
 -- Spawns a Sun at 9:30 AM
 World.SpawnDefaultSun()
 World.SetTime(9, 30)
-World.SetSunSpeed(0)
+-- World.SetSunSpeed(0)
 
 -- Deathmatch data
 Deathmatch = {
@@ -16,6 +15,30 @@ Deathmatch = {
 -- Calls Battlefield Kill UI to configure it - parameters: enable_autodamagescore, kill_score, headshot_score
 Package.Subscribe("Load", function()
 	Events.Call("ConfigureBattlefieldKillUI", false, 20, 20)
+
+	my_sound = Sound(
+	Vector(), -- Location (if a 3D sound)
+	"package///nanos-world-thundermatch/Client/Music/" .. tostring(math.random(9)) .. ".ogg", -- Asset Path
+	true, -- Is 2D Sound
+	true, -- Auto Destroy (if to destroy after finished playing)
+	SoundType.SFX,
+	1, -- Volume
+	1 -- Pitch
+	)
+	Timer.SetInterval(function()
+		if my_sound == nil or my_sound:IsValid() == false or my_sound:IsPlaying() == false then
+			my_sound = Sound(
+			Vector(), -- Location (if a 3D sound)
+			"package///nanos-world-thundermatch/Client/Music/" .. tostring(math.random(9)) .. ".ogg", -- Asset Path
+			true, -- Is 2D Sound
+			true, -- Auto Destroy (if to destroy after finished playing)
+			SoundType.SFX,
+			1, -- Volume
+			1 -- Pitch
+			)
+			my_sound:FadeIn(5, 1, 0)
+		end
+	end, 5000)
 	return false
 end)
 
