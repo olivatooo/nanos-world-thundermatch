@@ -591,7 +591,7 @@ function UpdateMatchState(new_state)
 
     -- Freeze all characters
     for k, character in pairs(Character.GetAll()) do
-      character:SetMovementEnabled(false)
+      character:SetInputEnabled(false)
       character:SetFlyingMode(true)
     end
   elseif (new_state == MATCH_STATES.IN_PROGRESS) then
@@ -601,14 +601,14 @@ function UpdateMatchState(new_state)
     Chat.BroadcastMessage("<grey>Round Started!</>")
     -- Unfreeze all characters
     for k, character in pairs(Character.GetAll()) do
-      character:SetMovementEnabled(true)
+      character:SetInputEnabled(true)
       character:SetFlyingMode(false)
     end
   elseif (new_state == MATCH_STATES.POST_TIME) then
     Deathmatch.remaining_time = DeathmatchSettings.post_time
     -- Freeze all characters
     for k, character in pairs(Character.GetAll()) do
-      character:SetMovementEnabled(false)
+      character:SetInputEnabled(false)
       character:SetFlyingMode(true)
     end
 
@@ -744,7 +744,7 @@ function RespawnPlayer(player)
   end
 
   if (Deathmatch.match_state == MATCH_STATES.PREPARING) then
-    character:SetMovementEnabled(false)
+    character:SetInputEnabled(false)
   end
 
   -- Spawns a new weapon
