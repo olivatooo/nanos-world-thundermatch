@@ -522,7 +522,7 @@ Character.Subscribe("Death",
       Timer.SetTimeout(function(_character, _player)
         if _character and _character:IsValid() then
           _character:Destroy()
-          _player:SetCameraLocation(
+          _player:TranslateCameraTo(
             DeathmatchSettings.spawn_locations[math.random(#DeathmatchSettings.spawn_locations)] + Vector(0, 0, 2000), 1,
             1)
         end
