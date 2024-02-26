@@ -1,4 +1,4 @@
-Package.RequirePackage("default-weapons")
+Server.LoadPackage("default-weapons")
 
 -- List of the Default Weapons
 DefaultWeapons = {
@@ -646,15 +646,14 @@ function UpdateMatchState(new_state)
 end
 
 -- When player joins and/or is ready
-Events.Subscribe("PlayerReady", function(player)
+Events.SubscribeRemote("PlayerReady", function(player)
   -- If the match is about to end, don't do nothing
   if (Deathmatch.match_state ~= MATCH_STATES.POST_TIME) then
     -- Respawns the character
     local character = RespawnPlayer(player)
-
     -- If is preparing, freeze him
     if (Deathmatch.match_state == MATCH_STATES.PREPARING) then
-      character:SetMovementEnabled(false)
+      character:SetInputEnabled(false)
       character:SetFlyingMode(true)
     end
   end
