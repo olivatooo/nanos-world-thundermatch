@@ -727,10 +727,11 @@ function RespawnPlayer(player)
   if (weapon and weapon:IsValid()) then
     weapon:Destroy()
   end
-
-  local spawn_location = DeathmatchSettings.spawn_locations[math.random(#DeathmatchSettings.spawn_locations)] +
-      Vector(0, 0, -100)
-
+  local spawn_location = Vector(0, 0, 2000)
+  if #DeathmatchSettings.spawn_locations ~= 0 then
+    spawn_location = DeathmatchSettings.spawn_locations[math.random(#DeathmatchSettings.spawn_locations)] +
+        Vector(0, 0, -100)
+  end
   -- If player already has a character
   if (character) then
     -- If has a weapon, destroys it
