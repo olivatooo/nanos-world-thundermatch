@@ -435,8 +435,9 @@ function AddScore(player, score, id, label, use_current_label, silence)
     -- Calls the player to notify the Score
     Events.CallRemote("AddScore", player, score, id, label, use_current_label or false)
   end
-  if current_player_score + score > 10000 then
+  if current_player_score + score > 50000 then
     UpdateMatchState(MATCH_STATES.POST_TIME)
+    Chat.BroadcastMessage("<cyan>" .. player:GetName() .. "</> has won!")
   end
 end
 
@@ -551,7 +552,7 @@ Character.Subscribe("Death",
         end
       end
 
-      if ResetTimer == nil then
+      if ResetTimer == nil and Deathmatch.match_state == MATCH_STATES.IN_PROGRESS then
         ResetTimer = Timer.SetTimeout(function()
           UpdateMatchState(MATCH_STATES.PREPARING)
           ResetTimer = nil
@@ -842,11 +843,11 @@ function SpawnWeapon(player)
   weapon:SetAmmoBag(weapon:GetAmmoClip() * 3)
 
   if (DeathmatchSettings.weapons_to_use == "default") then
-    weapon:SetMaterialTextureParameter("PatternTexture",
-      "nanos-world/Textures/Pattern/" .. PatternList[math.random(#PatternList)])
-    weapon:SetMaterialScalarParameter("PatternBlend", 1)
-    weapon:SetMaterialScalarParameter("PatternTiling", 2)
-    weapon:SetMaterialScalarParameter("PatternRoughness", 0.3)
+    -- weapon:SetMaterialTextureParameter("PatternTexture",
+    --   "nanos-world/Textures/Pattern/" .. PatternList[math.random(#PatternList)])
+    -- weapon:SetMaterialScalarParameter("PatternBlend", 1)
+    -- weapon:SetMaterialScalarParameter("PatternTiling", 2)
+    -- weapon:SetMaterialScalarParameter("PatternRoughness", 0.3)
   end
 
   return weapon
