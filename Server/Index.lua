@@ -712,7 +712,8 @@ end
 --
 NumberOfAlivePlayers = 0
 function RespawnPlayer(player)
-  if (not player or not player:IsValid()) then return end
+  if player == nil then return end
+  if player:IsValid() == false then return end
 
   local character = player:GetControlledCharacter()
   if character then
