@@ -416,9 +416,6 @@ function AddDeath(player, instigator)
       if (DeathmatchSettings.mode == GAME_MODE.DEATHMATCH) then
         AddScore(instigator, 50, "killstreak_ended", "KILLSTREAK ENDED")
       end
-
-      Chat.BroadcastChatMessage("<cyan>" ..
-        instigator:GetName() .. "</> ended <cyan>" .. player:GetName() .. "'s</> <red>" .. kill_streak .. "</> streak!")
     end
   end
 
