@@ -438,7 +438,7 @@ function AddScore(player, score, id, label, use_current_label, silence)
     -- Calls the player to notify the Score
     Events.CallRemote("AddScore", player, score, id, label, use_current_label or false)
   end
-  if current_player_score + score > 50000 then
+  if current_player_score + score > 15000 then
     UpdateMatchState(MATCH_STATES.POST_TIME)
     Chat.BroadcastMessage("<cyan>" .. player:GetName() .. "</> has won!")
   end
