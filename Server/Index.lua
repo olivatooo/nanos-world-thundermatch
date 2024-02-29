@@ -1,5 +1,9 @@
 Server.LoadPackage("default-weapons")
 Package.Require("Bot/Bot.lua")
+Package.Require("Weapons/HFG.lua")
+Package.Require("Sky.lua")
+Package.Require("Weapons/BouncyGun.lua")
+
 
 -- List of the Default Weapons
 DefaultWeapons = {
@@ -26,6 +30,8 @@ DefaultWeapons = {
   NanosWorldWeapons.Lewis,
   NanosWorldWeapons.M1Garand,
   NanosWorldWeapons.ColtPython,
+  HFG,
+  BouncyGun
 }
 
 -- List of Weapons used in GunGame mode
@@ -247,13 +253,13 @@ DeathmatchSettings = {
   warmup_time = 30,
   preparing_time = 2,
   match_time = 300,
-  post_time = 15,
+  post_time = 30,
   multikill_time = 6,
-  kill_z = -100,
+  kill_z = -400,
   multikill_time_multiplier = 1,
   spawn_locations = {
   },
-  weapons_to_use = "default", -- "quaternius"
+  weapons_to_use = "default",
   mode = GAME_MODE.DEATHMATCH
 }
 
@@ -320,7 +326,7 @@ function AddKill(player, location)
   end
 
   -- Checks for Kill Streak
-  if (kill_streak >= 5) then
+  if (kill_streak >= 3) then
     local label, sound_asset, score = GetKillStreakLabel(kill_streak)
 
     Chat.BroadcastMessage("<cyan>" .. player:GetName() .. "</> is on a <red>" .. kill_streak .. "</> kill streak!")
@@ -414,7 +420,7 @@ function AddDeath(player, instigator)
     if (kill_streak >= 5) then
       -- Adds score for that
       if (DeathmatchSettings.mode == GAME_MODE.DEATHMATCH) then
-        AddScore(instigator, 50, "killstreak_ended", "KILLSTREAK ENDED")
+        AddScore(instigator, 100, "killstreak_ended", "KILLSTREAK ENDED")
       end
     end
   end
@@ -510,13 +516,10 @@ Character.Subscribe("Death",
 
         -- Spawns a Power Up in the place
         SpawnPowerUp(character:GetLocation())
-      else
-        AddScore(dead_player, -200, "enemy_kill", "ENEMY KILL", false, true)
       end
     end
 
     if (dead_player) then
-      AddScore(dead_player, -100, "enemy_kill", "ENEMY KILL", false, true)
       Events.CallRemote("SpawnSound", dead_player, Vector(), "quake-announcer::A_LostMatch", true, 1, 1)
       -- Adds a death to count
       AddDeath(dead_player, instigator)
@@ -565,11 +568,21 @@ Package.Subscribe("Load", function()
   end, 100)
 end)
 
-
+UniqueRound = false
+UniqueFunc = nil
 function GenerateThunderMatch()
+  UniqueRound = false
+  if math.random(100) > 50 then
+    UniqueRound = true
+    UniqueFunc = DefaultWeapons[math.random(#DefaultWeapons)]
+  end
   Events.Call("SetMapSize", 62 * #Player.GetAll())
   Events.Call("ClearMap")
   Events.Call("GenerateMap")
+  Timer.SetTimeout(function()
+    Console.Log("Calling clear structures")
+    Events.Call("ClearMapSlowly", 1000 / (62 * #Player.GetAll()))
+  end, 3000)
   if #Player.GetAll() == 1 then
     Timer.SetTimeout(function()
       for _, v in pairs(Player.GetAll()) do
@@ -708,6 +721,18 @@ end
 
 -- Helper for spawning/respawning a character for a Player
 --
+--
+function ClearVicinity(location, radius)
+  local sphere_trigger = Trigger(location, Rotator(), Vector(radius), TriggerType.Sphere, true, Color(1, 0, 0))
+  sphere_trigger:SetOverlapOnlyClasses({ "StaticMesh" })
+  sphere_trigger:Subscribe("BeginOverlap", function(trigger, actor_triggering)
+    actor_triggering:Destroy()
+  end)
+  Timer.SetTimeout(function()
+    sphere_trigger:Destroy()
+  end, 100)
+end
+
 NumberOfAlivePlayers = 0
 function RespawnPlayer(player)
   if player == nil then return end
@@ -728,6 +753,7 @@ function RespawnPlayer(player)
   if #DeathmatchSettings.spawn_locations ~= 0 then
     spawn_location = DeathmatchSettings.spawn_locations[math.random(#DeathmatchSettings.spawn_locations)] +
         Vector(0, 0, -100)
+    ClearVicinity(spawn_location + Vector(0, 0, 100), 200)
   end
   -- If player already has a character
   if (character) then
@@ -748,7 +774,7 @@ function RespawnPlayer(player)
     character:SetGravityScale(0.5)
     character:SetJumpZVelocity(500)
     character:SetFallDamageTaken(0)
-    character:SetAccelerationSettings(2048, 512, 1024, 128, 256, 256, 1024)
+    character:SetAccelerationSettings(2048, 512, 1024, 700, 256, 256, 1024)
     character:SetBrakingSettings(96, 96, 96, 3000, 10, 0)
     kill_z = Timer.SetInterval(function(_character)
       if (character:GetLocation().Z < DeathmatchSettings.kill_z) then
@@ -835,18 +861,20 @@ end
 function SpawnWeapon(player)
   local weapon = nil
 
-  local weapon_func = DefaultWeapons[math.random(#DefaultWeapons)]
-  weapon = weapon_func()
-
-  weapon:SetAmmoBag(weapon:GetAmmoClip() * 3)
-
-  if (DeathmatchSettings.weapons_to_use == "default") then
-    -- weapon:SetMaterialTextureParameter("PatternTexture",
-    --   "nanos-world/Textures/Pattern/" .. PatternList[math.random(#PatternList)])
-    -- weapon:SetMaterialScalarParameter("PatternBlend", 1)
-    -- weapon:SetMaterialScalarParameter("PatternTiling", 2)
-    -- weapon:SetMaterialScalarParameter("PatternRoughness", 0.3)
+  local weapon_func = nil
+  if UniqueRound == true then
+    weapon_func = UniqueFunc
+  else
+    weapon_func = DefaultWeapons[math.random(#DefaultWeapons)]
   end
+
+  weapon = weapon_func()
+  weapon:SetAmmoBag(weapon:GetAmmoClip() * 100)
+  weapon:SetMaterialTextureParameter("PatternTexture",
+    "assets://nanos-world/Textures/Pattern/" .. PatternList[math.random(#PatternList)])
+  weapon:SetMaterialScalarParameter("PatternBlend", 1)
+  weapon:SetMaterialScalarParameter("PatternTiling", 2)
+  weapon:SetMaterialScalarParameter("PatternRoughness", 0.3)
 
   return weapon
 end
@@ -858,11 +886,11 @@ function SpawnPowerUp(location)
   -- Spawns 2 props for making a cross
   local powerup_01 = Prop(new_location, Rotator(), "nanos-world::SM_Cube", CollisionType.NoCollision, false, false)
   powerup_01:SetScale(Vector(0.75, 0.25, 0.25))
-  powerup_01:SetMaterialColorParameter("Emissive", Color.GREEN * 100)
+  powerup_01:SetMaterialColorParameter("Emissive", Color.GREEN * 5)
 
   local powerup_02 = Prop(new_location, Rotator(), "nanos-world::SM_Cube", CollisionType.NoCollision, false, false)
   powerup_02:SetScale(Vector(0.25, 0.25, 0.75))
-  powerup_02:SetMaterialColorParameter("Emissive", Color.GREEN * 100)
+  powerup_02:SetMaterialColorParameter("Emissive", Color.GREEN * 5)
 
   -- Spawns a trigger to activate the power up in a character
   local trigger = Trigger(new_location, Rotator(), Vector(100), TriggerType.Sphere, false)
@@ -873,14 +901,14 @@ function SpawnPowerUp(location)
 
   -- If a character overlaps it, he gets the power up
   trigger:Subscribe("BeginOverlap", function(self, object)
-    if (NanosUtils.IsA(object, Character) and object:GetHealth() > 0) then
+    if (object:IsA(Character) and object:GetHealth() > 0) then
       -- Gives Health
       object:SetHealth(math.min(object:GetHealth() + 50, 120))
       object:SetSpeedMultiplier(object:GetSpeedMultiplier() + 0.1)
 
       -- Gives Ammo
       local weapon = object:GetPicked()
-      if (weapon and NanosUtils.IsA(weapon, Weapon)) then
+      if (weapon and weapon:IsA(Weapon)) then
         weapon:SetAmmoBag(math.min(weapon:GetAmmoBag() + 50, 100))
       end
 

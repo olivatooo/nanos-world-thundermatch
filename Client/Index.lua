@@ -1,12 +1,6 @@
--- Spawns HUD
 MainHUD = WebUI("Deathmatch HUD", "file:///UI/index.html")
 ScoreboardToggled = false
-
--- Spawns a Sun at 9:30 AM
-Sky.Spawn()
--- Sets the time to 16:30
-Sky.SetTimeOfDay(16, 30)
--- World.SetSunSpeed(0)
+Package.Require("Client/Sky.lua")
 
 -- Deathmatch data
 Deathmatch = {
@@ -18,13 +12,13 @@ Package.Subscribe("Load", function()
   Events.Call("ConfigureBattlefieldKillUI", false, 20, 20)
 
   my_sound = Sound(
-    Vector(),                                                                                 -- Location (if a 3D sound)
-    "package://nanos-world-thundermatch/Client/Music/" .. tostring(math.random(9)) .. ".ogg", -- Asset Path
-    true,                                                                                     -- Is 2D Sound
-    true,                                                                                     -- Auto Destroy (if to destroy after finished playing)
+    Vector(),                                                                                  -- Location (if a 3D sound)
+    "package://nanos-world-thundermatch/Client/Music/" .. tostring(math.random(12)) .. ".ogg", -- Asset Path
+    true,                                                                                      -- Is 2D Sound
+    true,                                                                                      -- Auto Destroy (if to destroy after finished playing)
     SoundType.Music,
-    1,                                                                                        -- Volume
-    1                                                                                         -- Pitch
+    1,                                                                                         -- Volume
+    1                                                                                          -- Pitch
   )
   Timer.SetInterval(function()
     if my_sound == nil or my_sound:IsValid() == false or my_sound:IsPlaying() == false then
