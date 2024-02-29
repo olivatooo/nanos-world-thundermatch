@@ -585,7 +585,7 @@ function GenerateThunderMatch()
   Events.Call("GenerateMap")
   Timer.SetTimeout(function()
     Console.Log("Calling clear structures")
-    Events.Call("ClearMapSlowly", 1000 / (62 * #Player.GetAll()))
+    Events.Call("ClearMapSlowly", 35)
   end, 3000)
   if #Player.GetAll() == 1 then
     Timer.SetTimeout(function()
