@@ -825,7 +825,7 @@ function SpawnBot()
 
   local character = Bot(spawn_location, Rotator(), "nanos-world::SK_Mannequin")
   character:SetCameraMode(CameraMode.FPSOnly)
-  character:SetGravityScale(0.5)
+  character:SetGravityScale(0.35)
   character:SetJumpZVelocity(500)
   character:SetFallDamageTaken(0)
   character:SetAccelerationSettings(2048, 512, 1024, 128, 256, 256, 1024)
