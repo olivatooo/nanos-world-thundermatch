@@ -39,7 +39,7 @@ function HFG:OnFire(character)
   trail_particle:AttachTo(grenade)
   grenade:SetValue("Particle", trail_particle)
   grenade:Subscribe("Hit", function(self, intensity)
-    local sphere_trigger = Trigger(self:GetLocation(), Rotator(), Vector(500), TriggerType.Sphere, true, Color(1, 0, 0))
+    local sphere_trigger = Trigger(self:GetLocation(), Rotator(), Vector(500), TriggerType.Sphere, false, Color(1, 0, 0))
     sphere_trigger:SetOverlapOnlyClasses({ "StaticMesh" })
     sphere_trigger:Subscribe("BeginOverlap", function(trigger, actor_triggering)
       if actor_triggering and actor_triggering:IsValid() then

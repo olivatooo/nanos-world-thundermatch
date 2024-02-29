@@ -575,6 +575,10 @@ function GenerateThunderMatch()
   if math.random(100) > 50 then
     UniqueRound = true
     UniqueFunc = DefaultWeapons[math.random(#DefaultWeapons)]
+    Chat.BroadcastMessage("Everyone with the <blue>same weapon</> !")
+  end
+  if UniqueRound == false then
+    Chat.BroadcastMessage("Everyone with <yellow>random weapons</> !")
   end
   Events.Call("SetMapSize", 62 * #Player.GetAll())
   Events.Call("ClearMap")
@@ -723,7 +727,7 @@ end
 --
 --
 function ClearVicinity(location, radius)
-  local sphere_trigger = Trigger(location, Rotator(), Vector(radius), TriggerType.Sphere, true, Color(1, 0, 0))
+  local sphere_trigger = Trigger(location, Rotator(), Vector(radius), TriggerType.Sphere, false, Color(1, 0, 0))
   sphere_trigger:SetOverlapOnlyClasses({ "StaticMesh" })
   sphere_trigger:Subscribe("BeginOverlap", function(trigger, actor_triggering)
     actor_triggering:Destroy()
@@ -753,7 +757,7 @@ function RespawnPlayer(player)
   if #DeathmatchSettings.spawn_locations ~= 0 then
     spawn_location = DeathmatchSettings.spawn_locations[math.random(#DeathmatchSettings.spawn_locations)] +
         Vector(0, 0, -100)
-    ClearVicinity(spawn_location + Vector(0, 0, 100), 200)
+    ClearVicinity(spawn_location + Vector(0, 0, 50), 200)
   end
   -- If player already has a character
   if (character) then
@@ -774,7 +778,7 @@ function RespawnPlayer(player)
     character:SetGravityScale(0.5)
     character:SetJumpZVelocity(500)
     character:SetFallDamageTaken(0)
-    character:SetAccelerationSettings(2048, 512, 1024, 700, 256, 256, 1024)
+    character:SetAccelerationSettings(2048, 512, 1024, 9000, 256, 256, 1024)
     character:SetBrakingSettings(96, 96, 96, 3000, 10, 0)
     kill_z = Timer.SetInterval(function(_character)
       if (character:GetLocation().Z < DeathmatchSettings.kill_z) then

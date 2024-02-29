@@ -39,7 +39,7 @@ function BouncyGun:OnFire(character)
 
   local prop = BouncyBall(spawn_location, Rotator.Random(true))
   prop:SetLifeSpan(10)
-  prop:AddImpulse(forward_vector * 12000, true)
+  prop:AddImpulse(forward_vector * 9000, true)
 end
 
 BouncyGun.SubscribeRemote("Fire", BouncyGun.OnFire)
